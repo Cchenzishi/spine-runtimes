@@ -27,23 +27,29 @@
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
+import { TextureAtlas } from '@esotericsoftware/spine-core';
 import {
+	type AssetExtension,
 	checkExtension,
 	copySearchParams,
 	DOMAdapter,
-	extensions,
 	ExtensionType,
+	extensions,
+	type Loader,
 	LoaderParserPriority,
 	path,
+	type ResolvedAsset,
 	Resolver,
-	TextureSource
+	type Texture,
+	TextureSource,
+	type UnresolvedAsset,
 } from 'pixi.js';
 import { SpineTexture } from '../SpineTexture.js';
-import { TextureAtlas } from '@esotericsoftware/spine-core';
 
-import type { AssetExtension, Loader, ResolvedAsset, Texture, UnresolvedAsset } from 'pixi.js';
 
 type RawAtlas = string;
+
+const loaderName = "spineTextureAtlasLoader";
 
 const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtlasMetadata> = {
 	extension: ExtensionType.Asset,
@@ -62,10 +68,12 @@ const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtl
 	},
 
 	loader: {
+		id: loaderName,
+		name: loaderName,
 		extension: {
 			type: ExtensionType.LoadParser,
 			priority: LoaderParserPriority.Normal,
-			name: 'spineTextureAtlasLoader',
+			name: loaderName,
 		},
 
 		test (url: string): boolean {
@@ -83,8 +91,9 @@ const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtl
 		testParse (asset: unknown, options: ResolvedAsset): Promise<boolean> {
 			const isExtensionRight = checkExtension(options.src as string, '.atlas');
 			const isString = typeof asset === 'string';
+			const isExplicitLoadParserSet = options.parser === loaderName || options.loadParser === loaderName;
 
-			return Promise.resolve(isExtensionRight && isString);
+			return Promise.resolve((isExtensionRight || isExplicitLoadParserSet) && isString);
 		},
 
 		unload (atlas: TextureAtlas) {

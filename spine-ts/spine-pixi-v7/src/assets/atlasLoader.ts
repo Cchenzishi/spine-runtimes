@@ -29,13 +29,15 @@
 
 import { TextureAtlas } from "@esotericsoftware/spine-core";
 import { SpineTexture } from "../SpineTexture.js";
-import type { AssetExtension, Loader, UnresolvedAsset } from "@pixi/assets";
+import type { AssetExtension, Loader, ResolvedAsset, UnresolvedAsset } from "@pixi/assets";
 import { Assets, copySearchParams } from "@pixi/assets";
 import { LoaderParserPriority, checkExtension } from "@pixi/assets";
 import type { Texture } from "@pixi/core";
 import { ALPHA_MODES, ExtensionType, settings, utils, BaseTexture, extensions } from "@pixi/core";
 
 type RawAtlas = string;
+
+const loaderName = "spineTextureAtlasLoader";
 
 const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtlasMetadata> = {
 	extension: ExtensionType.Asset,
@@ -53,17 +55,18 @@ const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtl
 	},
 
 	loader: {
+		name: loaderName,
 		extension: {
 			type: ExtensionType.LoadParser,
 			priority: LoaderParserPriority.Normal,
-			name: "spineTextureAtlasLoader",
+			name: loaderName,
 		},
 
-		test(url: string): boolean {
+		test (url: string): boolean {
 			return checkExtension(url, ".atlas");
 		},
 
-		async load(url: string): Promise<RawAtlas> {
+		async load (url: string): Promise<RawAtlas> {
 			const response = await settings.ADAPTER.fetch(url);
 
 			const txt = await response.text();
@@ -71,18 +74,19 @@ const spineTextureAtlasLoader: AssetExtension<RawAtlas | TextureAtlas, ISpineAtl
 			return txt;
 		},
 
-		testParse(asset: unknown, options: {src: string}): Promise<boolean> {
-			const isExtensionRight = checkExtension(options.src, ".atlas");
+		testParse (asset: unknown, options: ResolvedAsset): Promise<boolean> {
+			const isExtensionRight = checkExtension(options.src!, ".atlas");
 			const isString = typeof asset === "string";
+			const isExplicitLoadParserSet = options.loadParser === loaderName;
 
-			return Promise.resolve(isExtensionRight && isString);
+			return Promise.resolve((isExtensionRight || isExplicitLoadParserSet) && isString);
 		},
 
-		unload(atlas: TextureAtlas) {
+		unload (atlas: TextureAtlas) {
 			atlas.dispose();
 		},
 
-		async parse(asset: RawAtlas, options: {src: string, data: ISpineAtlasMetadata}, loader: Loader): Promise<TextureAtlas> {
+		async parse (asset: RawAtlas, options: { src: string, data: ISpineAtlasMetadata }, loader: Loader): Promise<TextureAtlas> {
 			const metadata: ISpineAtlasMetadata = options.data || {};
 			let basePath = utils.path.dirname(options.src);
 
